@@ -1,8 +1,8 @@
-const sauces = require('../models/sauces');
+const Sauces = require('../models/Sauces');
 const fs = require('fs');
 
 exports.createSauces = (req, res, next) => {
-  const saucesObject = JSON.parse(req.body.sauces);
+  const saucesObject = JSON.parse(req.body.sauce);
   delete saucesObject._id;
   const sauces = new Sauces({
     ...saucesObject,
@@ -10,11 +10,13 @@ exports.createSauces = (req, res, next) => {
   });
   sauces.save()
     .then(() => res.status(201).json({ message: 'Sauce enregistré !'}))
-    .catch(error => res.status(400).json({ error }));
+    .catch(error =>
+       res.status(400).json({ error })
+    );
 };
 
 exports.getOneSauces = (req, res, next) => {
-  sauces.findOne({
+  Sauces.findOne({
     _id: req.params.id
   }).then(
     (sauces) => {
@@ -65,4 +67,33 @@ exports.getAllSauces = (req, res, next) => {
       });
     }
   );
+};
+
+exports.likeSauces = (req, res, next) => {
+  Sauces.findOne({
+    _id: req.params.id
+  }).then(
+    (sauces) => {
+      if (req.body.like == 1){
+        sauces.likes += 1;
+        sauces.usersLiked.push(req.body.userId);
+      }
+      else if (req.body.like == -1){
+        sauces.dislikes += 1;
+        sauces.usersDisliked.push(req.body.userId);
+      }
+      else if (req.body.like == 0){
+        if (sauces.usersLiked.some(userId => req.body.userId == userId)){
+          sauces.likes -= 1;
+          sauces.usersLiked = sauces.usersLiked.filter(userId => req.body.userId != userId);
+        }
+        else{
+          sauces.dislikes -= 1;
+          sauces.usersDisliked = sauces.usersDisliked.filter(userId => req.body.userId != userId);
+        }
+      }
+      sauces.save()
+      .then(() => res.status(200).json({ message: 'Like ajouté !'}))
+      .catch(error => res.status(400).json({ error }));
+    })
 };
